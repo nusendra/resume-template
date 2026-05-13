@@ -1,6 +1,7 @@
 export interface Resume {
   name: string;
   title: string;
+  headline?: string;
   avatarUrl: string;
   address: string;
   addressUrl: string;
@@ -8,9 +9,12 @@ export interface Resume {
   objectives: string[];
   links: Link[];
   workExperiences: WorkExperience[];
+  notableProjects?: NotableProject[];
   educations: Education[];
   additionalActivities: AdditionalActivity[];
   skills: Skill[];
+  languages?: Language[];
+  meta?: ResumeMeta;
 }
 
 export interface Link {
@@ -34,6 +38,18 @@ export interface WorkExperience {
   roles: string;
   jobDesc: string[];
   type: string;
+  employmentType?: string;
+}
+
+export interface NotableProject {
+  id: number;
+  name: string;
+  role: string;
+  description: string;
+  stack: string[];
+  url?: string;
+  year: string;
+  category: string;
 }
 
 export interface Education {
@@ -52,4 +68,13 @@ export interface AdditionalActivity {
 export interface Skill {
   type: string;
   tools: string[];
+}
+
+export interface Language {
+  name: string;
+  level: string;
+}
+
+export interface ResumeMeta {
+  updatedAt: string;
 }

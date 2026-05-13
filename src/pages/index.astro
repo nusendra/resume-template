@@ -5,7 +5,7 @@ import SvgIcon from "../components/SvgIcon.astro";
 import Divider from "../components/Divider.astro";
 
 // Use this code if you want to get JSON data from an API
-import type { Resume } from "../types";
+import type { Resume, WorkExperience } from "../types";
 
 const response = await fetch(import.meta.env.API_URL);
 const data: Resume = await response.json();
@@ -14,6 +14,26 @@ const data: Resume = await response.json();
 // import data from "../../data-example.json"
 
 // You can choose the methods that best fit your needs and delete the unused ones.
+
+const parseStartYear = (years: string): number => {
+  const m = years.match(/(\d{4})/);
+  return m ? parseInt(m[1], 10) : 0;
+};
+
+const parseEndYear = (years: string): number => {
+  if (/Present/i.test(years)) return 9999;
+  const all = years.match(/\d{4}/g) ?? [];
+  return all.length ? parseInt(all[all.length - 1], 10) : 0;
+};
+
+const sortedExperiences: WorkExperience[] = [...data.workExperiences].sort(
+  (a, b) =>
+    parseEndYear(b.years) - parseEndYear(a.years) ||
+    parseStartYear(b.years) - parseStartYear(a.years) ||
+    b.id - a.id
+);
+
+const sortedEducations = [...data.educations].sort((a, b) => b.id - a.id);
 ---
 
 <html lang="en">
@@ -22,6 +42,7 @@ const data: Resume = await response.json();
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={data.about} />
     <title>{data.name} - {data.title}</title>
   </head>
   <body class="container mx-auto">
@@ -30,6 +51,7 @@ const data: Resume = await response.json();
         <div class="mx-auto flex">
           <img
             src={data.avatarUrl}
+            alt={data.name}
             class="rounded-full h-24"
           />
           <div class="flex-1 self-center text-right">
@@ -41,6 +63,11 @@ const data: Resume = await response.json();
             <p class="text-lg leading-8 text-gray-600 font-bold">
               {data.title}
             </p>
+            {data.headline && (
+              <p class="text-xs leading-5 text-gray-500 italic">
+                {data.headline}
+              </p>
+            )}
             <p class="text-sm leading-8 text-gray-600 self-center">
               <a href={data.addressUrl} target="_blank">
                 <GlobeIcon display="inline" /><span class="hover:underline"
@@ -51,7 +78,7 @@ const data: Resume = await response.json();
             <div class="flex justify-end mt-[-60px] mb-[-60px]">
               {
                 data.links.map((item) => (
-                  <a href={item.url} target="_blank" class="self-center">
+                  <a href={item.url} target="_blank" class="self-center" aria-label={item.name}>
                     <SvgIcon id={item.id} />
                   </a>
                 ))
@@ -78,29 +105,18 @@ const data: Resume = await response.json();
         </div>
 
         <div class="text-2xl font-bold tracking-tight text-gray-900 sm:text-xl mt-8">
-          Skills
-        </div>
-        <Divider />
-
-        <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
-          {data.skills.map((item) => (
-            <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-              <dt class="truncate text-sm font-semibold text-gray-500">{item.type}</dt>
-              <dd class="mt-2 text-sm font-medium text-gray-500">{item.tools.join(", ")}</dd>
-            </div>
-          ))}
-        </dl>
-
-        <div class="text-2xl font-bold tracking-tight text-gray-900 sm:text-xl mt-8">
           Experiences
         </div>
         <Divider />
 
-        {data.workExperiences.sort((a, b) => b.id - a.id).map((item) => (
+        {sortedExperiences.map((item) => (
           <div class="mt-5">
             <div class="text-sm font-medium tracking-tight text-gray-900 sm:text-lg mt-2">
                  {item.companyName}, <span class="text-gray-700 font-normal">{item.roles}</span>
               <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 ml-2">{item.type}</span>
+              {item.employmentType && (
+                <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-700/10 ml-1">{item.employmentType}</span>
+              )}
             </div>
 
             <div class="text-sm font-normal tracking-tight text-gray-900 sm:text-sm">
@@ -120,22 +136,49 @@ const data: Resume = await response.json();
           </div>
         ))}
 
+        {data.notableProjects && data.notableProjects.length > 0 && (
+          <>
+            <div class="text-2xl font-bold tracking-tight text-gray-900 sm:text-xl mt-8">
+              Notable Projects
+            </div>
+            <Divider />
+
+            {data.notableProjects.map((item) => (
+              <div class="mt-5">
+                <div class="text-sm font-medium tracking-tight text-gray-900 sm:text-lg mt-2">
+                  {item.url ? (
+                    <a href={item.url} target="_blank" class="hover:underline">{item.name}</a>
+                  ) : (
+                    <span>{item.name}</span>
+                  )}
+                  <span class="text-gray-700 font-normal">, {item.role}</span>
+                  <span class="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-700/10 ml-2">{item.category}</span>
+                </div>
+
+                <div class="text-sm font-normal tracking-tight text-gray-900 sm:text-sm">
+                  {item.year}
+                </div>
+
+                <p class="mt-1 text-sm leading-6 text-gray-600">{item.description}</p>
+                <p class="mt-1 text-xs text-gray-500"><span class="font-medium">Stack:</span> {item.stack.join(", ")}</p>
+              </div>
+            ))}
+          </>
+        )}
+
         <div class="text-2xl font-bold tracking-tight text-gray-900 sm:text-xl mt-8">
-          Education
+          Skills
         </div>
         <Divider />
 
-        {data.educations.sort((a, b) => b.id - a.id).map((item) => (
-          <div class="mb-5">
-            <div class="text-sm font-medium tracking-tight text-gray-900 sm:text-lg mt-2">
-              {item.title}
+        <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {data.skills.map((item) => (
+            <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+              <dt class="truncate text-sm font-semibold text-gray-500">{item.type}</dt>
+              <dd class="mt-2 text-sm font-medium text-gray-500">{item.tools.join(", ")}</dd>
             </div>
-
-            <div class="text-sm font-normal tracking-tight text-gray-900 sm:text-sm">
-                 {item.schoolName}, {item.location}, {item.years}
-            </div>
-          </div>
-        ))}
+          ))}
+        </dl>
 
         <div class="text-2xl font-bold tracking-tight text-gray-900 sm:text-xl mt-8">
           Additional Activities
@@ -161,6 +204,45 @@ const data: Resume = await response.json();
 
           </div>
         ))}
+
+        {data.languages && data.languages.length > 0 && (
+          <>
+            <div class="text-2xl font-bold tracking-tight text-gray-900 sm:text-xl mt-8">
+              Languages
+            </div>
+            <Divider />
+            <ul class="mt-3 space-y-1 text-sm leading-6 text-gray-600">
+              {data.languages.map((lang) => (
+                <li class="flex gap-x-2">
+                  <CheckIcon /><span><span class="font-medium">{lang.name}</span> — {lang.level}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        <div class="text-2xl font-bold tracking-tight text-gray-900 sm:text-xl mt-8">
+          Education
+        </div>
+        <Divider />
+
+        {sortedEducations.map((item) => (
+          <div class="mb-5">
+            <div class="text-sm font-medium tracking-tight text-gray-900 sm:text-lg mt-2">
+              {item.title}
+            </div>
+
+            <div class="text-sm font-normal tracking-tight text-gray-900 sm:text-sm">
+                 {item.schoolName}, {item.location}, {item.years}
+            </div>
+          </div>
+        ))}
+
+        {data.meta?.updatedAt && (
+          <div class="mt-12 text-xs text-gray-400 text-center">
+            Last updated: {data.meta.updatedAt}
+          </div>
+        )}
 
       </div>
     </div>
